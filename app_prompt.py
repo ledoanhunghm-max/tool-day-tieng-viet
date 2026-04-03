@@ -3,20 +3,14 @@ import json
 from google import genai
 from PIL import Image
 
-# --- 1. GIAO DIỆN CẤU HÌNH API KEY TỪ NGƯỜI DÙNG ---
-with st.sidebar:
-    st.header("🔑 Cấu hình hệ thống")
-    API_KEY = st.text_input("Nhập Gemini API Key của bạn để sử dụng:", type="password")
-    st.markdown("👉 [Nhấn vào đây để tạo API Key miễn phí](https://aistudio.google.com/app/apikey)")
-    st.markdown("---")
-    st.write("Lưu ý: API Key của bạn chỉ được lưu tạm thời trên trình duyệt và tự xóa khi đóng tab. Ứng dụng không lưu trữ dữ liệu này.")
-
-client = None
-if API_KEY:
-    try:
-        client = genai.Client(api_key=API_KEY)
-    except Exception as e:
-        st.sidebar.error("API Key không hợp lệ hoặc lỗi kết nối!")
+# --- 1. TỰ ĐỘNG LẤY API KEY TỪ KÉT SẮT BÍ MẬT CỦA STREAMLIT ---
+# (Đảm bảo bạn đã cài đặt GEMINI_API_KEY trong phần Secrets của app trên Streamlit)
+try:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+    client = genai.Client(api_key=API_KEY)
+except Exception as e:
+    st.error("⚠️ Không tìm thấy API Key trong Secrets. Vui lòng cài đặt lại Két sắt!")
+    client = None
 
 # --- 2. HÀM TẠO KỊCH BẢN ---
 def tao_bo_prompt_chuyen_gia(chu_de, danh_sach_anh=None):
@@ -76,7 +70,6 @@ def tao_bo_prompt_chuyen_gia(chu_de, danh_sach_anh=None):
 def xuat_ra_text_rut_gon(du_lieu_json, chu_de):
     noi_dung_txt = f"CHỦ ĐỀ: \n{chu_de}\n" + "="*70 + "\n\n"
     
-    # Hiển thị bối cảnh gốc lên đầu để người dùng biết
     noi_dung_txt += "📍 BỐI CẢNH XUYÊN SUỐT CỦA VIDEO:\n"
     noi_dung_txt += f"{du_lieu_json.get('master_background', 'Không có')}\n"
     noi_dung_txt += "="*70 + "\n\n"
@@ -96,7 +89,7 @@ def xuat_ra_text_rut_gon(du_lieu_json, chu_de):
 # --- 4. GIAO DIỆN WEB ---
 st.set_page_config(page_title="App Sinh Prompt Dạy Tiếng Việt", page_icon="🎓", layout="centered")
 st.title("🎓 Trạm Sinh Prompt Video Dạy Tiếng Việt")
-st.markdown("Hỗ trợ: **Đa nhân vật**, **Bối cảnh xuyên suốt**, **KHÔNG TEXT trong media**, **Tiếng Việt 100%**.")
+st.markdown("Hỗ trợ: **Đa nhân vật**, **Bối cảnh xuyên suốt**, **KHÔNG TEXT trong media**, **Tiếng Việt 100%**, và **An Toàn Tuyệt Đối**.")
 
 danh_sach_anh = st.file_uploader("🖼️ BƯỚC 1: Tải ảnh tham chiếu (Có thể chọn nhiều)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 if danh_sach_anh:
@@ -108,13 +101,13 @@ chu_de_input = st.text_area("📥 BƯỚC 2: Nhập chủ đề HOẶC dán hộ
 
 if st.button("🚀 Xử Lý & Sinh Bộ Prompt", type="primary", width="stretch"):
     if not client:
-        st.error("⚠️ Vui lòng mở thanh Sidebar bên trái và nhập API Key của bạn để sử dụng!")
+        st.error("⚠️ Ứng dụng chưa được kết nối API Key. Vui lòng báo cho quản trị viên kiểm tra lại mục Secrets!")
     else:
         with st.spinner("⏳ AI đang xây dựng bối cảnh gốc và xử lý kịch bản..."):
             try:
                 ket_qua = tao_bo_prompt_chuyen_gia(chu_de_input, danh_sach_anh)
                 ket_qua_txt = xuat_ra_text_rut_gon(ket_qua, chu_de_input)
-                st.success("✅ Thành công! Bối cảnh đã được đồng nhất.")
+                st.success("✅ Thành công! App đã chạy mượt mà và an toàn.")
                 st.text_area("Xem trước:", ket_qua_txt, height=600)
                 st.download_button("💾 Tải File", ket_qua_txt, "Bo_Prompt.txt")
             except Exception as e:
